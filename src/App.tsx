@@ -1,11 +1,19 @@
 import React from "react";
-import ApolloClient, { gql } from "apollo-boost";
+import {
+  ApolloClient,
+  ApolloProvider,
+  useQuery,
+  HttpLink,
+  InMemoryCache,
+  gql,
+} from "@apollo/client";
 
 const client = new ApolloClient({
-  uri: "https://48p1r2roz4.sse.codesandbox.io",
+  cache: new InMemoryCache(),
+  link: new HttpLink({
+    uri: "https://48p1r2roz4.sse.codesandbox.io",
+  }),
 });
-
-import { ApolloProvider, useQuery } from "@apollo/react-hooks";
 
 const fragment = gql`
   fragment someFields on Rates {
@@ -17,16 +25,29 @@ const fragment = gql`
 export const EXCHANGE_RATES = gql`
   query rates {
     rates(currency: "USD") {
+      currency
+      rate
+    }
+  }
+`;
+
+export const EXCHANGE_RATES_FRAGMENT = gql`
+  query rates {
+    rates(currency: "USD") {
       ...someFields
     }
   }
   ${fragment}
 `;
 
-export function ExchangeRates() {
+export function ExchangeRates({
+  useFragment = false,
+}: {
+  useFragment?: boolean;
+}) {
   const { loading, error, data } = useQuery<{
     rates: { currency: string; rate: number }[];
-  }>(EXCHANGE_RATES);
+  }>(useFragment ? EXCHANGE_RATES_FRAGMENT : EXCHANGE_RATES);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error :(</p>;
@@ -34,8 +55,8 @@ export function ExchangeRates() {
   return (
     <div data-testid="data">
       {data &&
-        data.rates.map(({ currency, rate }) => (
-          <div key={currency}>
+        data.rates.map(({ currency, rate }, index) => (
+          <div key={index}>
             <p>
               {currency}: {rate}
             </p>
